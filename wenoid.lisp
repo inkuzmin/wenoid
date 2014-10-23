@@ -1,5 +1,7 @@
 (in-package #:wenoid)
 
+(setf drakma:*drakma-default-external-format* :WINDOWS-1251)
+
 (defun test (url)
   (drakma:http-request url))
 
@@ -14,29 +16,30 @@
 (defun extract-get-params (params)
   (loop for param in params
      when (getp param)
-     collect param))
+     collect (cons (getf param :name) (getf param :value))))
+  
 
 (defun extract-post-params (params)
   (loop for param in params
      when (postp param)
-     collect param))
+     collect (cons (getf param :name) (getf param :value))))
 
 (defun params-to-string (params)
-  (let ((query (with-output-to-string (s)
-             (format s "?")
-             (dolist (param params)
-               (format s "~a=" (getf param :name))
-               (format s "~a&" (getf param :value))))))
-    (drakma:url-encode (subseq query 0 (- (length query) 1)) :utf-8)))
+  (let ((query (with-output-to-string (stream)
+             (format stream "?")
+             (loop for (name . value) in params
+                do (format stream "~a=~a&" name value)))))
+             ;(dolist (param params)
+              ; (format s "~a=" (getf param :name))
+            ;(format s "~a&" (getf param :value))))))
+    (subseq query 0 (- (length query) 1))))
 
-(defun request-index (chat params)
-  (let* ((get-params  (extract-get-params params))
+
+(defun request-august (chat page &optional (params nil))
+  (let* ((get-params (extract-get-params params))
         (post-params (extract-post-params params))
-        (url (concatenate 'string chat "/index" (params-to-string get-params))))
-    (format t "~a" url)))
-    ;(format t "~a" get-params)
-    ;(format t "~a" post-params))))
-;    (drakma:http-request ""
- ;                        :method :post
-  ;                       :parameters '(("entered_login" . "test")
-   ;                                    ("entered_password" . "test"))))
+        (url (concatenate 'string chat "/" page (params-to-string get-params))))
+    (drakma:http-request url
+                         :method :post
+                         :parameters post-params)))
+  
